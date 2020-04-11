@@ -1,0 +1,25 @@
+@startuml
+title Brang - Admin (Use Case Diagram)
+!define LIGHTBLUE
+' !include style.puml
+skinparam monochrome true
+
+actor User <<Human>>
+
+rectangle admin.py {
+User --> (Add new Site)
+(Add new Site) .right.> (Backend: Check if new \nSite URL is "valid") : <<include>>
+}
+@enduml
+
+@startuml
+skinparam monochrome true
+
+title Brang - Backend (Use Case Diagram)
+actor Cron <<Machine>>
+rectangle Server {
+    Cron -->  (Check all Sites for Changes)
+    (Update SiteChange Table \n if a change has been detected) .> (Check all Sites for Changes) : extends
+    (Notify User) .> (Update SiteChange Table \n if a change has been detected) : extends
+}
+@enduml

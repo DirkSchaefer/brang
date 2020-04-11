@@ -1,0 +1,16 @@
+@startuml
+skinparam componentStyle uml2
+skinparam monochrome true
+title Brang (Component Diagram)
+interface "REST" as REST
+
+package "Backend" {
+[ChangeChecker]-[Database]
+REST-[Database]
+}
+
+package "Frontend" {
+[React.js] -.> REST
+}
+
+@enduml

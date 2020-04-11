@@ -1,0 +1,58 @@
+@startuml
+skinparam monochrome true
+
+title Brang (Class Diagram)
+class ChangeChecker {
+    + check_all_sites()
+    - _create_current_fingerprint(url) -> (str, timestamp)
+    - _update_site_fingerprint(Site)
+}
+
+ChangeChecker -- Database
+
+class Admin {
+ + list_sites()
+ + add_site(URL)
+ + rm_site(id)
+}
+
+Admin -- Database
+
+
+interface Database {
+    + add_site(URL)
+    + get_site(id) -> Site
+    + get_all_sites()
+    --
+    + add_site_change(site, fingerprint, timestamp)
+    + get_site_changes(site, since) -> [SiteChange]
+}
+
+class SQLiteDatabase <<Database Manager>> {
+}
+
+SQLiteDatabase --|> Database
+
+class Site <<Model>>{
+    + id: Integer
+    + url: String
+}
+
+Site -- Database
+SiteChange -- Database
+
+class SiteChange <<Model>>{
+    + id: Integer
+    + site_id: Integer
+    + fingerprint: String
+    + changedate: Timestamp
+}
+
+Site o-- SiteChange
+class RESTService <<API>> {
+    #add_site: POST /site
+    #rm_site: DELETE /site/id
+}
+
+RESTService -- Database
+@enduml
