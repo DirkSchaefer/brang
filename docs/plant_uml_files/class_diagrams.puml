@@ -49,10 +49,10 @@ class SiteChange <<Model>>{
 }
 
 Site o-- SiteChange
-class RESTService <<API>> {
-    #add_site: POST /site
-    #rm_site: DELETE /site/id
-}
+' class RESTService <<API>> {
+'     #add_site: POST /site
+'     #rm_site: DELETE /site/id
+' }
 
-RESTService -- Database
+' RESTService -- Database
 @enduml

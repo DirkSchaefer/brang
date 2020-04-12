@@ -1,0 +1,15 @@
+@startuml
+skinparam monochrome true
+title ChangeChecker (Activity Diagram)
+
+(*)  -right-> "Get current timestamp"
+-right-> "Get next Site (URL, id)"
+-down-> "Request URL and create fingerprint"
+-left-> "Get last SiteChange for Site.id"
+If "Fingerprint is new" then
+-right-> [Yes] "Create new SiteChange entry"
+--> (*)
+else
+-right-> [No] (*)
+Endif
+@enduml

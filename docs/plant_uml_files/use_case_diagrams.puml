@@ -8,7 +8,9 @@ actor User <<Human>>
 
 rectangle admin.py {
 User --> (Add new Site)
-(Add new Site) .right.> (Backend: Check if new \nSite URL is "valid") : <<include>>
+(Add new Site) .down.> (Backend: Check if new \nSite URL is "valid") : <<include>>
+User --> (Remove Site)
+User --> (List Sites)
 }
 @enduml
 
@@ -19,7 +21,7 @@ title Brang - Backend (Use Case Diagram)
 actor Cron <<Machine>>
 rectangle Server {
     Cron -->  (Check all Sites for Changes)
-    (Update SiteChange Table \n if a change has been detected) .> (Check all Sites for Changes) : extends
-    (Notify User) .> (Update SiteChange Table \n if a change has been detected) : extends
+    (Update SiteChange DB Table \n if a change has been detected) .> (Check all Sites for Changes) : extends
+    (Send Notification E-Mail) .up.> (Update SiteChange DB Table \n if a change has been detected) : extends
 }
 @enduml
