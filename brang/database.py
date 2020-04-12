@@ -44,9 +44,6 @@ class Site(Base):
     site_changes = relationship("SiteChange",
                                 backref="site",
                                 cascade="all, delete, delete-orphan")
-    user_sites = relationship("UserSite",
-                              backref="site",
-                              cascade="all, delete, delete-orphan")
 
 
 class SiteChange(Base):
