@@ -17,8 +17,8 @@ class DatabaseTests(unittest.TestCase):
         self.db = database.SQLiteDatabase(db_filename=':memory:')
         self.url_atomic = 'http://localhost:5000/atomic'
         self.url_eternal = 'http://localhost:5000/eternal'
-        self.db.session.add(Site(url=self.url_atomic, title='Atomic'))
-        self.db.session.add(Site(url=self.url_eternal, title='Eternal'))
+        self.db.session.add(Site(url=self.url_atomic))
+        self.db.session.add(Site(url=self.url_eternal))
         self.db.session.add(SiteChange(site_id=1,
                                        fingerprint="xyz",
                                        check_timestamp=datetime.datetime.now()))
@@ -26,6 +26,12 @@ class DatabaseTests(unittest.TestCase):
                                        fingerprint="abc",
                                        check_timestamp=datetime.datetime(1988, 10, 15)))
         self.db.session.commit()
+
+    def test_1_insert_site(self):
+        self.db.insert_site(url="https://www.brang.io")
+        site = self.db.get_site(url="https://www.brang.io")
+        logging.info(site)
+        self.assertIsNot(None, site.id)
 
     def test_10_get_all_sites(self):
         all_sites = self.db.get_all_sites()
@@ -51,7 +57,7 @@ class DatabaseTests(unittest.TestCase):
             print(e)
 
     def test_30_remove_sitechange_entry_by_deleting_site(self):
-        site_entry = Site(url='http://brang.io', title='Brang')
+        site_entry = Site(url='http://brang.io')
         self.db.session.add(site_entry)
         self.db.session.commit()
         print(site_entry.id)
@@ -104,7 +110,16 @@ class DatabaseTests(unittest.TestCase):
         ex = cm.exception
         print(ex)
 
-
+    def test_insert_sitechange_entry(self):
+        url = "http://insert_sitechange_test.com"
+        self.db.insert_site(url=url)
+        site = self.db.get_site(url=url)
+        self.db.insert_site_change_entry(site=site,
+                                         fingerprint="123",
+                                         timestamp=datetime.datetime.now())
+        qr = self.db.session.query(SiteChange).filter(SiteChange.fingerprint == "123").one()
+        logging.info(qr)
+        self.assertEqual(site.id, qr.site_id)
 
     def tearDown(self) -> None:
         logging.info("tear down")

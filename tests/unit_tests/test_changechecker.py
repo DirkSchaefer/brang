@@ -2,12 +2,13 @@ import unittest
 import logging
 import requests
 import hashlib
+import time
 
 import tests.test_server as test_server
 import brang.database as database
 from brang.change_checker import ChangeChecker
 from brang.exceptions import FingerprintGenerationError
-from brang.database import Site
+from brang.database import Site, SiteChange
 
 
 logging.basicConfig(level=logging.INFO)
@@ -66,6 +67,38 @@ class ChangeCheckerTests(unittest.TestCase):
         s2 = hashlib.sha224(r_t2.content).hexdigest()
         logging.info(f"Fingerprint t2: {s2}")
         self.assertEqual(s1, s2)
+
+    def test_check_site_changing_empty(self):
+        test_url = 'http://localhost:5000/atomic'
+        self.db.insert_site(url=test_url)
+        site = self.db.get_site(url=test_url)
+        self.checker.check_site(site=site)
+        qr = self.db.session.query(SiteChange).filter(SiteChange.site_id == site.id).all()
+        logging.info(qr)
+        self.assertEqual(site.id, qr[0].site_id)
+
+    def test_check_site_changing_nonempty(self):
+        test_url = 'http://localhost:5000/atomic'
+        self.db.insert_site(url=test_url)
+        site = self.db.get_site(url=test_url)
+        self.checker.check_site(site=site)
+        time.sleep(1)
+        self.checker.check_site(site=site)
+
+        qr = self.db.session.query(SiteChange).filter(SiteChange.site_id == site.id).all()
+        logging.info(qr)
+        self.assertEqual(2, len(qr))
+
+    def test_check_site_nonchanging_nonempty(self):
+        test_url = 'http://localhost:5000/eternal'
+        self.db.insert_site(url=test_url)
+        site = self.db.get_site(url=test_url)
+        self.checker.check_site(site=site)
+        time.sleep(1)
+        self.checker.check_site(site=site)
+        qr = self.db.session.query(SiteChange).filter(SiteChange.site_id == site.id).all()
+        logging.info(qr)
+        self.assertEqual(1, len(qr))
 
     def tearDown(self) -> None:
         logging.info("tear down")

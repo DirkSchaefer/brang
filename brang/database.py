@@ -40,7 +40,6 @@ class Site(Base):
     __tablename__ = 'site'
     id = Column(Integer, primary_key=True)
     url = Column(String)
-    title = Column(String)
     site_changes = relationship("SiteChange",
                                 backref="site",
                                 cascade="all, delete, delete-orphan")
@@ -65,6 +64,15 @@ class Database(ABC):
     def get_all_sites(self) -> list:
         """
         Returns a list of site objects
+        :return:
+        """
+        pass
+
+    def insert_site(self, url: String):
+        """
+        Inserts a site entry.
+
+        :param url:
         :return:
         """
         pass
@@ -112,6 +120,16 @@ class SQLiteDatabase(Database):
         Setting.__table__.create(bind=self.engine, checkfirst=True)
         Site.__table__.create(bind=self.engine, checkfirst=True)
         SiteChange.__table__.create(bind=self.engine, checkfirst=True)
+
+    def insert_site(self, url: String):
+        """
+        Inserts a site entry.
+
+        :param url:
+        :return:
+        """
+        self.session.add(Site(url=url))
+        self.session.commit()
 
     def get_all_sites(self) -> list:
         """

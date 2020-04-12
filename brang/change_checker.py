@@ -5,6 +5,7 @@ import requests
 
 from brang.exceptions import FingerprintGenerationError
 from brang.database import Database, Site, SiteChange
+from brang.exceptions import SiteChangeNotFoundException
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class ChangeChecker(object):
         """
         url = site.url
         try:
-            ts = datetime.datetime.now().timestamp()
+            ts = datetime.datetime.now()
             r = requests.get(url)
             if r.status_code != 200:
                 raise FingerprintGenerationError(f"Invalid http code: {r.status_code}.")
@@ -49,4 +50,18 @@ class ChangeChecker(object):
         :param site:
         :return:
         """
-        pass
+        d = ChangeChecker.get_fingerprint(site=site)
+        try:
+            latest_site_change = self.db.get_latest_sitechange(site=site)
+            if d['fingerprint'] == latest_site_change.fingerprint:
+                return
+        except SiteChangeNotFoundException:
+            pass
+
+        # Create new SiteChange entry
+        self.db.insert_site_change_entry(site=site,
+                                         fingerprint=d['fingerprint'],
+                                         timestamp=d['timestamp'])
+
+
+
