@@ -10,7 +10,7 @@ from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integ
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy import UniqueConstraint
 
-from brang.exceptions import SiteNotFoundException
+from brang.exceptions import SiteNotFoundException, SiteChangeNotFoundException
 
 
 class BaseExt(object):
@@ -79,6 +79,15 @@ class Database(ABC):
         :param fingerprint:
         :param timestamp:
         :return:
+        """
+        pass
+
+    def get_latest_sitechange(self, site: Site) -> SiteChange:
+        """
+        Returns
+        :param site:
+        :return:
+        :raises: SiteChangeNotFoundException: if entry does not exist
         """
         pass
 
@@ -155,6 +164,24 @@ class SQLiteDatabase(Database):
                                     fingerprint=fingerprint,
                                     check_timestamp=timestamp))
         self.session.commit()
+
+    def get_latest_sitechange(self, site: Site) -> SiteChange:
+        """
+        Returns
+        :param site:
+        :return:
+        :raises: SiteChangeNotFoundException: if entry does not exist
+        """
+        ex_msg = f"No SiteChange entry with id={site.id} could not be found."
+        try:
+            qr = self.session.query(SiteChange).\
+                filter(site.id == SiteChange.site_id).\
+                order_by(SiteChange.check_timestamp.desc()).first()
+        except (sqlalchemy.orm.exc.NoResultFound, sqlalchemy.orm.exc.MultipleResultsFound):
+            raise SiteChangeNotFoundException(ex_msg)
+        if not qr:
+            raise SiteChangeNotFoundException(ex_msg)
+        return qr
 
     def destroy_sqlite_db_file(self):
         if os.path.exists(self.db_filename):

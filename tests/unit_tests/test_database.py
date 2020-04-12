@@ -6,6 +6,7 @@ import sqlalchemy
 
 import brang.database as database
 from brang.database import Site, SiteChange
+from brang.exceptions import SiteChangeNotFoundException
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,6 +19,12 @@ class DatabaseTests(unittest.TestCase):
         self.url_eternal = 'http://localhost:5000/eternal'
         self.db.session.add(Site(url=self.url_atomic, title='Atomic'))
         self.db.session.add(Site(url=self.url_eternal, title='Eternal'))
+        self.db.session.add(SiteChange(site_id=1,
+                                       fingerprint="xyz",
+                                       check_timestamp=datetime.datetime.now()))
+        self.db.session.add(SiteChange(site_id=1,
+                                       fingerprint="abc",
+                                       check_timestamp=datetime.datetime(1988, 10, 15)))
         self.db.session.commit()
 
     def test_10_get_all_sites(self):
@@ -44,7 +51,7 @@ class DatabaseTests(unittest.TestCase):
             print(e)
 
     def test_30_remove_sitechange_entry_by_deleting_site(self):
-        site_entry = Site(url='http://whatsnew.io', title='Whats New')
+        site_entry = Site(url='http://brang.io', title='Brang')
         self.db.session.add(site_entry)
         self.db.session.commit()
         print(site_entry.id)
@@ -76,6 +83,28 @@ class DatabaseTests(unittest.TestCase):
         logging.info("All SiteChange entries (should be gone):")
         for entry in self.db.session.query(SiteChange).all():
             logging.info(entry)
+
+    def test_40_get_latest_sitechange(self):
+        site = self.db.get_site_by_id(1)
+        logging.info(f"Site: {site}")
+        site_change = self.db.get_latest_sitechange(site=site)
+        logging.info(site_change)
+        self.assertEqual("xyz", site_change.fingerprint)
+
+    def test_41_get_latest_sitechange_none(self):
+        """
+        Test if exception is raised if no sitechange entry could be found.
+        :return:
+        """
+        with self.assertRaises(SiteChangeNotFoundException) as cm:
+            site = self.db.get_site_by_id(2)
+            logging.info(f"Site: {site}")
+            site_change = self.db.get_latest_sitechange(site=site)
+            logging.info(site_change)
+        ex = cm.exception
+        print(ex)
+
+
 
     def tearDown(self) -> None:
         logging.info("tear down")

@@ -4,7 +4,7 @@ import logging
 import requests
 
 from brang.exceptions import FingerprintGenerationError
-from brang.database import Site, SiteChange
+from brang.database import Database, Site, SiteChange
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class ChangeChecker(object):
     it will be added.
     """
 
-    def __init__(self, db):
+    def __init__(self, db: Database):
         self.db = db
 
     @staticmethod
@@ -42,3 +42,11 @@ class ChangeChecker(object):
             raise FingerprintGenerationError(f"Fingerprint for url={url} could not be generated at ts={ts}. "
                                              f"Original exception: {e.__class__}:{str(e)}")
 
+    def check_site(self, site: Site):
+        """
+        Check content change for one particular site.
+
+        :param site:
+        :return:
+        """
+        pass

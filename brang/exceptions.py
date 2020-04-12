@@ -9,3 +9,8 @@ class FingerprintGenerationError(Exception):
 class SiteNotFoundException(Exception):
     """Raised when a Site could not be found"""
     pass
+
+
+class SiteChangeNotFoundException(Exception):
+    """Raised when a SiteChange entry could not be found"""
+
