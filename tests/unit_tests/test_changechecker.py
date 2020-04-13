@@ -4,12 +4,13 @@ import requests
 import hashlib
 import time
 
+import mailtest
+
 import tests.test_server as test_server
 import brang.database as database
 from brang.change_checker import ChangeChecker
 from brang.exceptions import FingerprintGenerationError
 from brang.database import Site, SiteChange
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -97,6 +98,38 @@ class ChangeCheckerTests(unittest.TestCase):
         qr = self.db.session.query(SiteChange).filter(SiteChange.site_id == site.id).all()
         logging.info(qr)
         self.assertEqual(1, len(qr))
+
+    def test_check_all_sites_first_run(self):
+        self.db.insert_site(url=self.url_fix)
+        self.db.insert_site(url=self.url_changing)
+        self.checker.check_all_sites()
+        qr = self.db.session.query(SiteChange).all()
+        for res in qr:
+            logging.info(res)
+        self.assertEqual(2, len(qr))
+
+    def test_check_all_sites_late_run(self):
+        self.db.insert_site(url=self.url_fix)
+        self.db.insert_site(url=self.url_changing)
+        self.checker.check_all_sites()
+        self.checker.check_all_sites()
+        qr = self.db.session.query(SiteChange).all()
+        for res in qr:
+            logging.info(res)
+        self.assertEqual(3, len(qr))
+
+    def test_send_email(self):
+        recipient = "root@localhost"
+        self.db.add_setting(key="email_to", value=recipient)
+        self.db.add_setting(key="smtp_port", value="1025")
+        self.db.add_setting(key="smtp_server", value="localhost")
+
+        with mailtest.Server(smtp_port=1025) as s:
+            self.checker.send_email(msg_body="test")
+            self.assertEqual(len(s.emails), 1)
+            self.assertEqual(s.emails[0].frm, 'notify@brang.io')
+            self.assertEqual(s.emails[0].to, [recipient])
+            self.assertEqual(s.emails[0].msg, 'test')
 
     def tearDown(self) -> None:
         logging.info("tear down")

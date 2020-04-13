@@ -2,10 +2,12 @@ import datetime
 import hashlib
 import logging
 import requests
+import smtplib
+from email.message import EmailMessage
 
 from brang.exceptions import FingerprintGenerationError
 from brang.database import Database, Site, SiteChange
-from brang.exceptions import SiteChangeNotFoundException
+from brang.exceptions import SiteChangeNotFoundException, SettingNotFoundException
 
 log = logging.getLogger(__name__)
 
@@ -51,10 +53,13 @@ class ChangeChecker(object):
         :return:
         """
         d = ChangeChecker.get_fingerprint(site=site)
+        update_detected = False
         try:
             latest_site_change = self.db.get_latest_sitechange(site=site)
             if d['fingerprint'] == latest_site_change.fingerprint:
                 return
+            else:
+                update_detected = True
         except SiteChangeNotFoundException:
             pass
 
@@ -62,6 +67,52 @@ class ChangeChecker(object):
         self.db.insert_site_change_entry(site=site,
                                          fingerprint=d['fingerprint'],
                                          timestamp=d['timestamp'])
+        return update_detected
 
+    def check_all_sites(self):
+        """
+        Check all site for content changes.
 
+        The method also triggers the notification if changes have been found.
 
+        :return:
+        """
+        sites = self.db.get_all_sites()
+
+        msg_lines = []
+        for site in sites:
+            log.info(f"Processing site: Id={site.id}, URL={site.url}")
+            update_detected = self.check_site(site=site)
+            if update_detected:
+                msg_lines.append(f"* {site.url}")
+
+        if len(msg_lines) > 0:
+            self.send_email(msg_body="\n".join(msg_lines))
+
+    def send_email(self, msg_body):
+        """
+        Helper function for sending e-mail.
+
+        The method requires an existing Setting entries with the keys
+         - email_to
+         - smtp_port
+         - smtp_server
+
+        :param msg_body:
+        :return:
+        """
+        try:
+            email_to = self.db.get_setting("email_to").value
+            smtp_server = self.db.get_setting("smtp_server").value
+            smtp_port = int(self.db.get_setting("smtp_port").value)
+            msg = EmailMessage()
+            msg.set_content(msg_body)
+            msg['Subject'] = f"Brang.io: Site changes detected"
+            msg['From'] = "notify@brang.io"
+            msg['To'] = email_to
+
+            s = smtplib.SMTP(host=smtp_server, port=smtp_port)
+            s.send_message(msg)
+            s.close()
+        except SettingNotFoundException as e:
+            log.error(f"Could not send e-email. {e}")
