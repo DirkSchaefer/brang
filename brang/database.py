@@ -71,9 +71,29 @@ class Database(ABC):
         pass
 
     @abstractmethod
+    def get_site(self, url) -> Site:
+        """
+        Returns a Site object given a url.
+
+        :param url:
+        :return:
+        """
+        pass
+
+    @abstractmethod
     def insert_site(self, url: String):
         """
         Inserts a site entry.
+
+        :param url:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def remove_site(self, url: String):
+        """
+        Removes a Site entry from the database.
 
         :param url:
         :return:
@@ -169,6 +189,20 @@ class SQLiteDatabase(Database):
         self.session.add(Site(url=url))
         self.session.commit()
 
+    def remove_site(self, url: String):
+        """
+        Removes a Site entry from the database.
+
+        :param url:
+        :return:
+        """
+        try:
+            site = self.get_site(url=url)
+            self.session.delete(site)
+            self.session.commit()
+        except SiteNotFoundException:
+            pass
+
     def get_all_sites(self) -> list:
         """
         Returns a list of site objects
@@ -191,18 +225,6 @@ class SQLiteDatabase(Database):
             qr = self.session.query(Site).filter(Site.url == url).one()
         except (sqlalchemy.orm.exc.NoResultFound, sqlalchemy.orm.exc.MultipleResultsFound):
             raise SiteNotFoundException(f"Site with url={url} could not be found.")
-        return qr
-
-    def get_site_by_id(self, site_id) -> Site:
-        """
-        Returns a Site object given its id.
-        :param site_id:
-        :return:
-        """
-        try:
-            qr = self.session.query(Site).filter(Site.id == site_id).one()
-        except (sqlalchemy.orm.exc.NoResultFound, sqlalchemy.orm.exc.MultipleResultsFound):
-            raise SiteNotFoundException(f"Site with id={site_id} could not be found.")
         return qr
 
     def insert_site_change_entry(self, site: Site,

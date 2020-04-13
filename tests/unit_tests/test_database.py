@@ -15,10 +15,11 @@ class DatabaseTests(unittest.TestCase):
     def setUp(self):
         logging.info("setUp")
         self.db = database.SQLiteDatabase(db_filename=':memory:')
-        self.url_atomic = 'http://localhost:5000/atomic'
-        self.url_eternal = 'http://localhost:5000/eternal'
-        self.db.session.add(Site(url=self.url_atomic))
-        self.db.session.add(Site(url=self.url_eternal))
+        self.url_fix = 'http://localhost:5000/fix'
+        self.url_changing = 'http://localhost:5000/changing'
+
+        self.db.session.add(Site(url=self.url_changing))
+        self.db.session.add(Site(url=self.url_fix))
         self.db.session.add(SiteChange(site_id=1,
                                        fingerprint="xyz",
                                        check_timestamp=datetime.datetime.now()))
@@ -91,7 +92,7 @@ class DatabaseTests(unittest.TestCase):
             logging.info(entry)
 
     def test_get_latest_sitechange(self):
-        site = self.db.get_site_by_id(1)
+        site = self.db.get_site(self.url_changing)
         logging.info(f"Site: {site}")
         site_change = self.db.get_latest_sitechange(site=site)
         logging.info(site_change)
@@ -103,7 +104,7 @@ class DatabaseTests(unittest.TestCase):
         :return:
         """
         with self.assertRaises(SiteChangeNotFoundException) as cm:
-            site = self.db.get_site_by_id(2)
+            site = self.db.get_site(self.url_fix)
             logging.info(f"Site: {site}")
             site_change = self.db.get_latest_sitechange(site=site)
             logging.info(site_change)
