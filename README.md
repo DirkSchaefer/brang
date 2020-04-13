@@ -1,7 +1,7 @@
 # Brang
 ![alt text](docs/images/brang.png)
 
-Brang (short form for Boomerang)
+/bræŋ/ - abbreviation of boomerang
 
 ## Summary
 Brang is a Python based software agent that tracks websites for changes.
