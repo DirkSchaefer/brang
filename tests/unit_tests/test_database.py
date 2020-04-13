@@ -6,7 +6,7 @@ import sqlalchemy
 
 import brang.database as database
 from brang.database import Site, SiteChange
-from brang.exceptions import SiteChangeNotFoundException
+from brang.exceptions import SiteChangeNotFoundException, SettingNotFoundException
 
 logging.basicConfig(level=logging.INFO)
 
@@ -120,6 +120,22 @@ class DatabaseTests(unittest.TestCase):
         qr = self.db.session.query(SiteChange).filter(SiteChange.fingerprint == "123").one()
         logging.info(qr)
         self.assertEqual(site.id, qr.site_id)
+
+    def test_setting_insert(self):
+        test_value = "bar"
+        self.db.add_setting("foo", test_value)
+        setting = self.db.get_setting("foo")
+        self.assertEqual(test_value, setting.value)
+
+    def test_setting_get_miss(self):
+        with self.assertRaises(SettingNotFoundException):
+            self.db.get_setting("foo")
+
+    def test_setting_remove(self):
+        self.db.add_setting("foo", "bar")
+        self.db.remove_setting("foo")
+        with self.assertRaises(SettingNotFoundException):
+            self.db.get_setting("foo")
 
     def tearDown(self) -> None:
         logging.info("tear down")

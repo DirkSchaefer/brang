@@ -14,3 +14,7 @@ class SiteNotFoundException(Exception):
 class SiteChangeNotFoundException(Exception):
     """Raised when a SiteChange entry could not be found"""
 
+
+class SettingNotFoundException(Exception):
+    """Raised when a Setting entry could not be found"""
+

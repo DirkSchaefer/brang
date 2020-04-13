@@ -10,7 +10,9 @@ from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integ
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy import UniqueConstraint
 
-from brang.exceptions import SiteNotFoundException, SiteChangeNotFoundException
+from brang.exceptions import (SiteNotFoundException,
+                              SiteChangeNotFoundException,
+                              SettingNotFoundException)
 
 
 class BaseExt(object):
@@ -68,6 +70,7 @@ class Database(ABC):
         """
         pass
 
+    @abstractmethod
     def insert_site(self, url: String):
         """
         Inserts a site entry.
@@ -77,6 +80,7 @@ class Database(ABC):
         """
         pass
 
+    @abstractmethod
     def insert_site_change_entry(self, site: Site,
                                  fingerprint: str,
                                  timestamp: datetime.datetime):
@@ -90,12 +94,46 @@ class Database(ABC):
         """
         pass
 
+    @abstractmethod
     def get_latest_sitechange(self, site: Site) -> SiteChange:
         """
-        Returns
+        Returns the latest SiteChange entry for a Site.
+
         :param site:
-        :return:
+        :return: SiteChange entry
         :raises: SiteChangeNotFoundException: if entry does not exist
+        """
+        pass
+
+    @abstractmethod
+    def add_setting(self, key, value):
+        """
+        Add Setting entry.
+
+        :param key: string
+        :param value: string
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def get_setting(self, key) -> str:
+        """
+        Returns a value from the key, value store.
+
+        :param key:
+        :return: value as string
+        :raises: SettingNotFoundException
+        """
+        pass
+
+    @abstractmethod
+    def remove_setting(self, key):
+        """
+        Remove Setting entry
+
+        :param key:
+        :return:
         """
         pass
 
@@ -185,7 +223,8 @@ class SQLiteDatabase(Database):
 
     def get_latest_sitechange(self, site: Site) -> SiteChange:
         """
-        Returns
+        Returns the latest SiteChange entry for a Site.
+
         :param site:
         :return:
         :raises: SiteChangeNotFoundException: if entry does not exist
@@ -199,6 +238,46 @@ class SQLiteDatabase(Database):
             raise SiteChangeNotFoundException(ex_msg)
         if not qr:
             raise SiteChangeNotFoundException(ex_msg)
+        return qr
+
+    def add_setting(self, key, value):
+        """
+        Add Setting entry.
+
+        :param key: string
+        :param value: string
+        :return:
+        """
+        self.session.add(Setting(key=key, value=value))
+        self.session.commit()
+
+    def remove_setting(self, key):
+        """
+        Remove Setting entry
+
+        :param key:
+        :return:
+        """
+        try:
+            setting = self.get_setting(key)
+            self.session.delete(setting)
+            self.session.commit()
+        except SettingNotFoundException:
+            pass
+
+    def get_setting(self, key) -> str:
+        """
+        Returns a value from the key, value store
+
+        :param key:
+        :return: value as string
+        :raises: SettingNotFoundException
+        """
+        try:
+            qr = self.session.query(Setting).filter(Setting.key == key).one()
+        except (sqlalchemy.orm.exc.NoResultFound, sqlalchemy.orm.exc.MultipleResultsFound):
+            raise SettingNotFoundException(f"Setting for key={key} not found.")
+
         return qr
 
     def destroy_sqlite_db_file(self):
