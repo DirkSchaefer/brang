@@ -28,8 +28,8 @@ def start_server():
     global server
     app = flask.Flask('test_app')
 
-    @app.route('/atomic/')
-    def atomic():
+    @app.route('/changing/')
+    def changing():
         """
         This mimics a website that is always changing.
         :return:
@@ -37,8 +37,8 @@ def start_server():
         s = datetime.datetime.now().isoformat()
         return s
 
-    @app.route('/eternal/')
-    def eternal():
+    @app.route('/fix/')
+    def fix():
         """
         This mimics a website that never changes.
         :return:

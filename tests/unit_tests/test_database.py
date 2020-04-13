@@ -27,13 +27,13 @@ class DatabaseTests(unittest.TestCase):
                                        check_timestamp=datetime.datetime(1988, 10, 15)))
         self.db.session.commit()
 
-    def test_1_insert_site(self):
+    def test_insert_site(self):
         self.db.insert_site(url="https://www.brang.io")
         site = self.db.get_site(url="https://www.brang.io")
         logging.info(site)
         self.assertIsNot(None, site.id)
 
-    def test_10_get_all_sites(self):
+    def test_get_all_sites(self):
         all_sites = self.db.get_all_sites()
         for entry in all_sites:
             logging.info(type(entry))
@@ -41,7 +41,7 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(list, type(all_sites))
         self.assertEqual(2, len(all_sites))
 
-    def test_20_insert_sitechange_entry_primitive(self):
+    def test_insert_sitechange_entry_primitive(self):
         timestamp = datetime.datetime.now()
         self.db.session.add(SiteChange(site_id=1,
                                        fingerprint='Test',
@@ -56,7 +56,7 @@ class DatabaseTests(unittest.TestCase):
             print("exception caught")
             print(e)
 
-    def test_30_remove_sitechange_entry_by_deleting_site(self):
+    def test_remove_sitechange_entry_by_deleting_site(self):
         site_entry = Site(url='http://brang.io')
         self.db.session.add(site_entry)
         self.db.session.commit()
@@ -90,14 +90,14 @@ class DatabaseTests(unittest.TestCase):
         for entry in self.db.session.query(SiteChange).all():
             logging.info(entry)
 
-    def test_40_get_latest_sitechange(self):
+    def test_get_latest_sitechange(self):
         site = self.db.get_site_by_id(1)
         logging.info(f"Site: {site}")
         site_change = self.db.get_latest_sitechange(site=site)
         logging.info(site_change)
         self.assertEqual("xyz", site_change.fingerprint)
 
-    def test_41_get_latest_sitechange_none(self):
+    def test_get_latest_sitechange_none(self):
         """
         Test if exception is raised if no sitechange entry could be found.
         :return:
