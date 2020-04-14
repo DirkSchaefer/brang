@@ -41,7 +41,7 @@ class Setting(Base):
 class Site(Base):
     __tablename__ = 'site'
     id = Column(Integer, primary_key=True)
-    url = Column(String)
+    url = Column(String, unique=True)
     site_changes = relationship("SiteChange",
                                 backref="site",
                                 cascade="all, delete, delete-orphan")

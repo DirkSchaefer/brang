@@ -1,0 +1,1 @@
+sqlite_file = '~/.brang/brang.db'

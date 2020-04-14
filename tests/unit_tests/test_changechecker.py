@@ -38,7 +38,7 @@ class ChangeCheckerTests(unittest.TestCase):
             site = Site(url=url)
             d = self.checker.get_fingerprint(site=site)
         ex = cm.exception
-        print(ex)
+        logging.info(ex)
 
     def test_change_checker_fingerprint_non_200_status_code(self):
         test_url = 'http://localhost:5000/unknown'
@@ -46,7 +46,7 @@ class ChangeCheckerTests(unittest.TestCase):
             site = Site(url=test_url)
             d = self.checker.get_fingerprint(site=site)
         ex = cm.exception
-        print(ex)
+        logging.info(ex)
 
     def test_prelim_detect_site_change(self):
         r_t1 = requests.get(self.url_changing)

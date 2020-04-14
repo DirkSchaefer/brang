@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""
+  brang - CMD line tool
+"""
+import argparse
+import logging
+import os
+import requests
+import sys
+
+from brang.database import SQLiteDatabase
+from brang.config import sqlite_file
+from brang.change_checker import ChangeChecker
+from brang.exceptions import SiteChangeNotFoundException
+import argparse
+import logging
+import os
+import requests
+import sys
+
+from brang.database import SQLiteDatabase
+from brang.config import sqlite_file
+from brang.change_checker import ChangeChecker
+from brang.exceptions import SiteChangeNotFoundException
+
+logging.basicConfig(level=logging.INFO)
+full_sqlite_file = os.path.expanduser(sqlite_file)
+brang_dir = os.path.dirname(full_sqlite_file)
+if not os.path.exists(brang_dir):
+    os.makedirs(brang_dir)
+db = SQLiteDatabase(db_filename=full_sqlite_file)
+
+
+def is_valid(url):
+    """
+    Tests if a URL is valid.
+
+    :param url:
+    :return:
+    """
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return False
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Brang admin')
+    subparsers = parser.add_subparsers(dest='sites')
+
+    parser_add = subparsers.add_parser('add', help='add a site')
+    parser_add.add_argument('URL', type=str)
+
+    parser_rm = subparsers.add_parser('rm', help='remove a site')
+    parser_rm.add_argument('URL', type=str)
+
+    subparsers.add_parser('list', help='list all sites')
+    subparsers.add_parser('changes', help='show latest changes')
+    subparsers.add_parser('checknow', help='trigger ChangeChecker component')
+
+    args = parser.parse_args()
+
+    if not args.sites:
+        parser.print_help()
+
+    if args.sites == 'list':
+        logging.info(f'list all sites')
+        sites = db.get_all_sites()
+        for i, site in enumerate(sites, start=1):
+            print(f"{i}: id={site.id}, url={site.url}")
+
+    elif args.sites == 'changes':
+        logging.info(f'show latest changes')
+        sites = db.get_all_sites()
+        cnt = 1
+        for site in sites:
+            try:
+                change_info = db.get_latest_sitechange(site=site)
+                url_str_len = 25
+                print(f"[{site.id}] {change_info.check_timestamp}, "
+                      f"{(site.url[:url_str_len] + '..') if len(site.url) > url_str_len else site.url }, "
+                      f"{change_info.fingerprint}")
+                cnt += 1
+            except SiteChangeNotFoundException:
+                pass
+
+    elif args.sites == 'add':
+        url_add = args.URL
+        if not is_valid(url=url_add):
+            print('URL seems not to be valid.')
+            if not input("Are you sure to add it? (y/n): ").lower().strip()[:1] == "y": sys.exit(1)
+        logging.info(f'add url {url_add}')
+        db.insert_site(url=url_add)
+        print("Site added.")
+
+    elif args.sites == 'rm':
+        url_rm = args.URL
+        logging.info(f'rm url {url_rm}')
+        db.remove_site(url=url_rm)
+        print("Site removed.")
+
+    elif args.sites == 'checknow':
+        checker = ChangeChecker(db=db)
+        checker.check_all_sites()
+        print("All sites checked.")
