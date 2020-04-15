@@ -1,10 +1,10 @@
 # Architecture 
 
 ## Functional Requirements
-The user can administrate Brang using a CMD line tool to add, list and remove sites. 
+The user can administrate brang using a CMD line tool to add, list and remove sites. 
 ![alt text](images/use_case_diagram_human.png)
 
-The sites are observed by Brang in a regular fashion and an e-mail is 
+The sites are observed by brang in a regular fashion and an e-mail is 
 being sent if a content change was detected. 
 ![alt text](images/use_case_diagram_cron.png)
 
