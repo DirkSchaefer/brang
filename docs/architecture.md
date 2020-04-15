@@ -1,7 +1,7 @@
 # Architecture 
 
 ## Functional Requirements
-The user can use the admin.py CMD line tool to add, list and remove sites. 
+The user can administrate Brang using a CMD line tool to add, list and remove sites. 
 ![alt text](images/use_case_diagram_human.png)
 
 The sites are observed by Brang in a regular fashion and an e-mail is 

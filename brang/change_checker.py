@@ -1,12 +1,15 @@
 import datetime
 import hashlib
 import logging
-import requests
+import os
 import smtplib
 from email.message import EmailMessage
 
+import requests
+
+import brang.config as config
+from brang.database import SQLiteDatabase, Database, Site
 from brang.exceptions import FingerprintGenerationError
-from brang.database import Database, Site, SiteChange
 from brang.exceptions import SiteChangeNotFoundException, SettingNotFoundException
 
 log = logging.getLogger(__name__)
@@ -103,8 +106,10 @@ class ChangeChecker(object):
         """
         try:
             email_to = self.db.get_setting("email_to").value
-            smtp_server = self.db.get_setting("smtp_server").value
-            smtp_port = int(self.db.get_setting("smtp_port").value)
+            if email_to == '':
+                raise SettingNotFoundException
+            smtp_server = config.smtp_server
+            smtp_port = config.smtp_port
             msg = EmailMessage()
             msg.set_content(msg_body)
             msg['Subject'] = f"Brang.io: Site changes detected"
@@ -114,5 +119,18 @@ class ChangeChecker(object):
             s = smtplib.SMTP(host=smtp_server, port=smtp_port)
             s.send_message(msg)
             s.close()
-        except SettingNotFoundException as e:
+        except Exception as e:
             log.error(f"Could not send e-email. {e}")
+
+
+if __name__ == '__main__':
+    t = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    print(f'[{t}] Brang::ChangeChecker.check_all_sites()')
+    full_sqlite_file = os.path.expanduser(config.sqlite_file)
+    brang_dir = os.path.dirname(full_sqlite_file)
+    if not os.path.exists(brang_dir):
+        os.makedirs(brang_dir)
+    db = SQLiteDatabase(db_filename=full_sqlite_file)
+
+    checker = ChangeChecker(db=db)
+    checker.check_all_sites()
