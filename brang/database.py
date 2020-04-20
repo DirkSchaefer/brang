@@ -73,7 +73,7 @@ class Database(ABC):
     @abstractmethod
     def get_site(self, url) -> Site:
         """
-        Returns a Site object given a url.
+        Returns a Site object given a url
 
         :param url:
         :return:
@@ -83,7 +83,7 @@ class Database(ABC):
     @abstractmethod
     def insert_site(self, url: String):
         """
-        Inserts a site entry.
+        Inserts a site entry
 
         :param url:
         :return:
@@ -93,7 +93,7 @@ class Database(ABC):
     @abstractmethod
     def remove_site(self, url: String):
         """
-        Removes a Site entry from the database.
+        Removes a Site entry from the database
 
         :param url:
         :return:
@@ -105,7 +105,7 @@ class Database(ABC):
                                  fingerprint: str,
                                  timestamp: datetime.datetime):
         """
-        Inserts a site_change entry.
+        Inserts a site_change entry
 
         :param site:
         :param fingerprint:
@@ -117,7 +117,7 @@ class Database(ABC):
     @abstractmethod
     def get_latest_sitechange(self, site: Site) -> SiteChange:
         """
-        Returns the latest SiteChange entry for a Site.
+        Returns the latest SiteChange entry for a Site
 
         :param site:
         :return: SiteChange entry
@@ -128,7 +128,7 @@ class Database(ABC):
     @abstractmethod
     def add_setting(self, key, value):
         """
-        Add Setting entry.
+        Add Setting entry
 
         :param key: string
         :param value: string
@@ -139,7 +139,7 @@ class Database(ABC):
     @abstractmethod
     def get_setting(self, key) -> str:
         """
-        Returns a value from the key, value store.
+        Returns a value from the key, value store
 
         :param key:
         :return: value as string
@@ -171,7 +171,7 @@ class SQLiteDatabase(Database):
 
     def setup_tables(self):
         """
-        Creates database tables if they do not exist yet.
+        Creates database tables if they do not exist yet
 
         :return:
         """
@@ -181,7 +181,7 @@ class SQLiteDatabase(Database):
 
     def insert_site(self, url: String):
         """
-        Inserts a site entry.
+        Inserts a site entry
 
         :param url:
         :return:
@@ -191,7 +191,7 @@ class SQLiteDatabase(Database):
 
     def remove_site(self, url: String):
         """
-        Removes a Site entry from the database.
+        Removes a Site entry from the database
 
         :param url:
         :return:
@@ -206,6 +206,7 @@ class SQLiteDatabase(Database):
     def get_all_sites(self) -> list:
         """
         Returns a list of site objects
+
         :return:
         """
         qr = self.session.query(Site).all()
@@ -216,7 +217,7 @@ class SQLiteDatabase(Database):
 
     def get_site(self, url) -> Site:
         """
-        Returns a Site object given a url.
+        Returns a Site object given a url
 
         :param url:
         :return:
@@ -231,7 +232,7 @@ class SQLiteDatabase(Database):
                                  fingerprint: str,
                                  timestamp: datetime.datetime):
         """
-        Inserts a site_change entry.
+        Inserts a site_change entry
 
         :param site:
         :param fingerprint:
@@ -245,7 +246,7 @@ class SQLiteDatabase(Database):
 
     def get_latest_sitechange(self, site: Site) -> SiteChange:
         """
-        Returns the latest SiteChange entry for a Site.
+        Returns the latest SiteChange entry for a Site
 
         :param site:
         :return:
@@ -264,7 +265,7 @@ class SQLiteDatabase(Database):
 
     def add_setting(self, key, value):
         """
-        Add Setting entry.
+        Add Setting entry
 
         :param key: string
         :param value: string

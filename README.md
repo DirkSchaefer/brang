@@ -1,5 +1,5 @@
 # brang
-![alt text](docs/images/brang.png)
+![alt text](docs/images/brang2.png)
 
 /bræŋ/ - abbreviation of boomerang
 

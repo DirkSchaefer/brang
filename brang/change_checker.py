@@ -96,8 +96,9 @@ class ChangeChecker(object):
         """
         Helper function for sending e-mail.
 
-        The method requires an existing Setting entries with the keys
-         - email_to
+        The method requires an existing Setting entry with the key
+         - email_to, and
+         config.py entries
          - smtp_port
          - smtp_server
 
