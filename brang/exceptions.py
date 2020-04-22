@@ -1,8 +1,8 @@
 """Custom Exceptions and Errors"""
 
 
-class FingerprintGenerationError(Exception):
-    """Raised when a fingerprint could not be generated"""
+class RequestError(Exception):
+    """Raised when a URL could not be requested"""
     pass
 
 

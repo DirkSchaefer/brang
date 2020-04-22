@@ -4,62 +4,81 @@ import logging
 import os
 import smtplib
 from email.message import EmailMessage
+from abc import ABC, abstractmethod
 
 import requests
 
 import brang.config as config
 from brang.database import SQLiteDatabase, Database, Site
-from brang.exceptions import FingerprintGenerationError
+from brang.exceptions import RequestError
 from brang.exceptions import SiteChangeNotFoundException, SettingNotFoundException
 
 log = logging.getLogger(__name__)
 
 
-class ChangeChecker(object):
+def create_fingerprint(text: str):
     """
-    ChangeChecker is responsible for checking all sites (in DB) for changes.
+    Creates a fingerprint for a given string.
 
-    It does it by requesting an URL from DB "Site" table and taking a fingerprint.
-    If the fingerprint does not exist yet for that URL in table "SiteChange",
-    it will be added.
+    :param text:
+    :return:
+    """
+    fingerprint = hashlib.sha224(text.encode('utf-8')).hexdigest()
+    return fingerprint
+
+
+def request_site(site: Site):
+    """
+    Requests the content of a site from the world wide web.
+
+    :param site:
+    :return:
+    """
+    url = site.url
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            raise RequestError(f"Invalid http code: {r.status_code}.")
+        return r.text
+    except Exception as e:
+        raise RequestError(f"Request for url={url} failed. "
+                           f"Original exception: {e.__class__}:{str(e)}")
+
+
+class ChangeCheckStrategy(ABC):
+    """
+    Interface for ChangeCheckStrategies
     """
 
+    @abstractmethod
+    def change_check(self, site: Site):
+        """
+        This method checks if a site has been changed in comparison to an earlier entry.
+        If there are no entries, a new SiteChange entry will be created.
+
+        :param site:
+        :return: True if a Site change could be detected, False otherwise
+        """
+        pass
+
+
+class NaiveCheckStrategy(ChangeCheckStrategy):
     def __init__(self, db: Database):
         self.db = db
 
-    @staticmethod
-    def get_fingerprint(site: Site):
+    def change_check(self, site: Site):
         """
-        Determines the fingerprint of a website specified by its URL.
-
-        :param site:
-        :return: dictionary with keys: timestamp and fingerprint
-        """
-        url = site.url
-        try:
-            ts = datetime.datetime.now()
-            r = requests.get(url)
-            if r.status_code != 200:
-                raise FingerprintGenerationError(f"Invalid http code: {r.status_code}.")
-            finger_print = hashlib.sha224(r.content).hexdigest()
-            ret = {'fingerprint': finger_print, 'timestamp': ts}
-            return ret
-        except Exception as e:
-            raise FingerprintGenerationError(f"Fingerprint for url={url} could not be generated at ts={ts}. "
-                                             f"Original exception: {e.__class__}:{str(e)}")
-
-    def check_site(self, site: Site):
-        """
-        Check content change for one particular site.
 
         :param site:
         :return:
         """
-        d = ChangeChecker.get_fingerprint(site=site)
+        text = request_site(site=site)
+        current_fingerprint = create_fingerprint(text=text)
+        current_ts = datetime.datetime.now()
         update_detected = False
         try:
             latest_site_change = self.db.get_latest_sitechange(site=site)
-            if d['fingerprint'] == latest_site_change.fingerprint:
+            if current_fingerprint == latest_site_change.fingerprint:
                 return
             else:
                 update_detected = True
@@ -68,9 +87,33 @@ class ChangeChecker(object):
 
         # Create new SiteChange entry
         self.db.insert_site_change_entry(site=site,
-                                         fingerprint=d['fingerprint'],
-                                         timestamp=d['timestamp'])
+                                         fingerprint=current_fingerprint,
+                                         timestamp=current_ts)
         return update_detected
+
+
+class ChangeChecker(object):
+    """
+    ChangeChecker is responsible for checking all sites (in DB) for changes.
+
+    It does this by requesting a URL from DB "Site" table and taking a fingerprint.
+    If the fingerprint does not exist yet for that URL in table "SiteChange",
+    it will be added.
+    """
+
+    def __init__(self, db: Database, change_check_strategy: ChangeCheckStrategy = None):
+        self.db = db
+        self.change_check_strategy = change_check_strategy
+
+    def check_site(self, site: Site):
+        """
+        Check content change for one particular site.
+
+        :param site:
+        :return:
+        """
+        site_has_changed = self.change_check_strategy.change_check(site=site)
+        return site_has_changed
 
     def check_all_sites(self):
         """
