@@ -103,7 +103,10 @@ class ChangeChecker(object):
 
     def __init__(self, db: Database, change_check_strategy: ChangeCheckStrategy = None):
         self.db = db
-        self.change_check_strategy = change_check_strategy
+        if change_check_strategy is None:
+            self.change_check_strategy = NaiveCheckStrategy(db=self.db)
+        else:
+            self.change_check_strategy = change_check_strategy
 
     def check_site(self, site: Site):
         """
