@@ -54,6 +54,7 @@ class SiteChange(Base):
     id = Column(Integer, primary_key=True)
     site_id = Column(Integer, ForeignKey('site.id'))
     fingerprint = Column(String)
+    pattern = Column(String)
     check_timestamp = Column(DateTime)
 
 
