@@ -3,6 +3,7 @@ import hashlib
 import logging
 import os
 import smtplib
+import time
 from email.message import EmailMessage
 from abc import ABC, abstractmethod
 
@@ -68,9 +69,11 @@ class NaiveCheckStrategy(ChangeCheckStrategy):
 
     def change_check(self, site: Site):
         """
+        This method checks if a site has been changed in comparison to an earlier entry.
+        If there are no entries, a new SiteChange entry will be created.
 
         :param site:
-        :return:
+        :return: True if a Site change could be detected, False otherwise
         """
         text = request_site(site=site)
         current_fingerprint = create_fingerprint(text=text)
@@ -79,7 +82,7 @@ class NaiveCheckStrategy(ChangeCheckStrategy):
         try:
             latest_site_change = self.db.get_latest_sitechange(site=site)
             if current_fingerprint == latest_site_change.fingerprint:
-                return
+                return False
             else:
                 update_detected = True
         except SiteChangeNotFoundException:
@@ -89,6 +92,118 @@ class NaiveCheckStrategy(ChangeCheckStrategy):
         self.db.insert_site_change_entry(site=site,
                                          fingerprint=current_fingerprint,
                                          timestamp=current_ts)
+        return update_detected
+
+
+class HfcInvarianceCheckStrategy(ChangeCheckStrategy):
+    def __init__(self, db: Database):
+        self.db = db
+
+    @staticmethod
+    def transform(text: str):
+        """
+        Basic transform used by HFC Invariance Check
+        :param text:
+        :return: list
+        """
+        return text.replace('<', '\n<').split('\n')
+
+    @staticmethod
+    def apply_pattern(pattern: str, text: str):
+        """
+        Applies the hfc-pattern on the text and returns the fingerprint.
+
+        :param pattern:
+        :param text:
+        :return:
+        """
+        p = pattern.split(',')
+        p.reverse()
+        t_list = HfcInvarianceCheckStrategy.transform(text=text)
+        for entry in p:
+            if entry != '':
+                del t_list[int(entry)]
+
+        site_str = ''.join(t_list)
+        return create_fingerprint(text=site_str)
+
+    @staticmethod
+    def create_pattern(site_t1_text, site_t2_text):
+        """
+        Creates the hfc-pattern on two html documents.
+
+        :param site_t1_text: html content (text) of a site at timestamp 1
+        :param site_t2_text: html content (text) of a site at timestamp 1
+        :return: pattern as comma separated string of line numbers
+        """
+        t_list_1 = HfcInvarianceCheckStrategy.transform(text=site_t1_text)
+        t_list_2 = HfcInvarianceCheckStrategy.transform(text=site_t2_text)
+        pattern = []
+        for i in range(len(t_list_1)):
+            if t_list_1[i] != t_list_2[i]:
+                pattern.append(i)
+        pattern_str = ','.join([str(x) for x in pattern])
+        return pattern_str
+
+    def change_check(self, site: Site):
+        """
+        This method checks if a site has been changed in comparison to an earlier entry.
+
+        If there are no previous SiteChange entries, a new SiteChange entry will be created.
+
+        :param site:
+        :return: True if a Site change could be detected, False otherwise
+        """
+        update_detected = False
+        try:
+            latest_site_change = self.db.get_latest_sitechange(site=site)
+            latest_fingerprint = latest_site_change.fingerprint
+            log.info(f"Latest fingerprint: {latest_fingerprint}")
+            latest_pattern = ""
+            if latest_site_change.pattern:
+                latest_pattern = latest_site_change.pattern
+            log.info(f"Pattern of latest_sitechange: {latest_pattern}")
+
+            current_text = request_site(site=site)
+            current_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(latest_pattern, current_text)
+            log.info(f"Current fingerprint: {current_fingerprint}")
+
+            if current_fingerprint == latest_fingerprint:
+                log.info(f'Nothing has changed.')
+                return False  # Nothing changed (update_detected = False)
+            else:
+                log.info(f'Update detected.')
+                update_detected = True
+
+                # Check validity of pattern by comparing ct_text vs (counter)check_text
+                log.info(f'Check validity of pattern.')
+                time.sleep(0.5)
+                check_text = request_site(site=site)
+                check_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(latest_pattern, check_text)
+                if check_fingerprint != current_fingerprint:
+                    log.info(f'Pattern not valid. Recreating it.')
+                    current_pattern = HfcInvarianceCheckStrategy.create_pattern(current_text, check_text)
+
+                    # Recreate current_fingerprint
+                    current_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(current_pattern, current_text)
+                else:
+                    log.info(f'Pattern is still valid.')
+                    current_pattern = latest_pattern
+
+        except SiteChangeNotFoundException:
+            log.info(f'SiteChange entry for url={site.url} not found. Create new HFC fingerprint.')
+            text_t1 = request_site(site=site)
+            time.sleep(1)
+            text_t2 = request_site(site=site)
+            current_pattern = HfcInvarianceCheckStrategy.create_pattern(text_t1, text_t2)
+            current_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(current_pattern, text_t1)
+
+        # Create new SiteChange entry
+        log.info(f"Creating new SiteChange entry with fingerprint: {current_fingerprint} and pattern: {current_pattern}")
+        self.db.insert_site_change_entry(site=site,
+                                         fingerprint=current_fingerprint,
+                                         pattern=current_pattern)
+
         return update_detected
 
 
@@ -104,7 +219,7 @@ class ChangeChecker(object):
     def __init__(self, db: Database, change_check_strategy: ChangeCheckStrategy = None):
         self.db = db
         if change_check_strategy is None:
-            self.change_check_strategy = NaiveCheckStrategy(db=self.db)
+            self.change_check_strategy = HfcInvarianceCheckStrategy(db=self.db)
         else:
             self.change_check_strategy = change_check_strategy
 

@@ -104,13 +104,15 @@ class Database(ABC):
     @abstractmethod
     def insert_site_change_entry(self, site: Site,
                                  fingerprint: str,
+                                 pattern: str,
                                  timestamp: datetime.datetime):
         """
         Inserts a site_change entry
 
-        :param site:
-        :param fingerprint:
-        :param timestamp:
+        :param site: site instance
+        :param fingerprint: string
+        :param pattern: string
+        :param timestamp: datetime
         :return:
         """
         pass
@@ -231,17 +233,20 @@ class SQLiteDatabase(Database):
 
     def insert_site_change_entry(self, site: Site,
                                  fingerprint: str,
-                                 timestamp: datetime.datetime):
+                                 pattern: str = "",
+                                 timestamp: datetime.datetime = datetime.datetime.now()):
         """
         Inserts a site_change entry
 
         :param site:
         :param fingerprint:
+        :param pattern:
         :param timestamp:
         :return:
         """
         self.session.add(SiteChange(site_id=site.id,
                                     fingerprint=fingerprint,
+                                    pattern=pattern,
                                     check_timestamp=timestamp))
         self.session.commit()
 
