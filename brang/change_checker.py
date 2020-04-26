@@ -133,7 +133,7 @@ class HfcInvarianceCheckStrategy(ChangeCheckStrategy):
         Creates the hfc-pattern on two html documents.
 
         :param site_t1_text: html content (text) of a site at timestamp 1
-        :param site_t2_text: html content (text) of a site at timestamp 1
+        :param site_t2_text: html content (text) of a site at timestamp 2
         :return: pattern as comma separated string of line numbers
         """
         t_list_1 = HfcInvarianceCheckStrategy.transform(text=site_t1_text)
