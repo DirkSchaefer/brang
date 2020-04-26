@@ -158,40 +158,40 @@ class HfcInvarianceCheckStrategy(ChangeCheckStrategy):
         try:
             latest_site_change = self.db.get_latest_sitechange(site=site)
             latest_fingerprint = latest_site_change.fingerprint
-            log.info(f"Latest fingerprint: {latest_fingerprint}")
+            log.debug(f"Latest fingerprint: {latest_fingerprint}")
             latest_pattern = ""
             if latest_site_change.pattern:
                 latest_pattern = latest_site_change.pattern
-            log.info(f"Pattern of latest_sitechange: {latest_pattern}")
+            log.debug(f"Pattern of latest_sitechange: {latest_pattern}")
 
             current_text = request_site(site=site)
             current_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(latest_pattern, current_text)
-            log.info(f"Current fingerprint: {current_fingerprint}")
+            log.debug(f"Current fingerprint: {current_fingerprint}")
 
             if current_fingerprint == latest_fingerprint:
-                log.info(f'Nothing has changed.')
+                log.debug(f'Nothing has changed.')
                 return False  # Nothing changed (update_detected = False)
             else:
-                log.info(f'Update detected.')
+                log.debug(f'Update detected.')
                 update_detected = True
 
                 # Check validity of pattern by comparing ct_text vs (counter)check_text
-                log.info(f'Check validity of pattern.')
+                log.debug(f'Check validity of pattern.')
                 time.sleep(0.5)
                 check_text = request_site(site=site)
                 check_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(latest_pattern, check_text)
                 if check_fingerprint != current_fingerprint:
-                    log.info(f'Pattern not valid. Recreating it.')
+                    log.debug(f'Pattern not valid. Recreating it.')
                     current_pattern = HfcInvarianceCheckStrategy.create_pattern(current_text, check_text)
 
                     # Recreate current_fingerprint
                     current_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(current_pattern, current_text)
                 else:
-                    log.info(f'Pattern is still valid.')
+                    log.debug(f'Pattern is still valid.')
                     current_pattern = latest_pattern
 
         except SiteChangeNotFoundException:
-            log.info(f'SiteChange entry for url={site.url} not found. Create new HFC fingerprint.')
+            log.debug(f'SiteChange entry for url={site.url} not found. Create new HFC fingerprint.')
             text_t1 = request_site(site=site)
             time.sleep(1)
             text_t2 = request_site(site=site)
@@ -199,7 +199,7 @@ class HfcInvarianceCheckStrategy(ChangeCheckStrategy):
             current_fingerprint = HfcInvarianceCheckStrategy.apply_pattern(current_pattern, text_t1)
 
         # Create new SiteChange entry
-        log.info(f"Creating new SiteChange entry with fingerprint: {current_fingerprint} and pattern: {current_pattern}")
+        log.debug(f"Creating new SiteChange entry with fingerprint: {current_fingerprint} and pattern: {current_pattern}")
         self.db.insert_site_change_entry(site=site,
                                          fingerprint=current_fingerprint,
                                          pattern=current_pattern)
