@@ -2,7 +2,7 @@
 skinparam monochrome true
 title ChangeChecker (Activity Diagram)
 
-(*)  -right-> "Get current timestamp"
+(*)  -right-> "Connect with database"
 -right-> "Get next Site (URL, id)"
 -down-> "Request URL and create fingerprint"
 -left-> "Get last SiteChange for Site.id"
@@ -12,4 +12,47 @@ If "Fingerprint is new" then
 else
 -right-> [No] (*)
 Endif
+@enduml
+
+@startuml
+skinparam monochrome true
+title Create HFC Invariant Fingerprint (Activity Diagram)
+
+(*)  -right-> "Request Site @ t1"
+-right-> "Sleep 1s"
+-right-> "Request Site @ t2"
+-down-> "Transform contents s.t. each tag is in one line"
+-left-> "Identify differing lines (=:'pattern')"
+-down-> "Remove differing lines"
+-right-> "Create fingerprints"
+-right-> If "Fingerprints are equal" then
+--> [Yes] "Save fingerprint and pattern"
+--> (*)
+else
+--> [No] "Error: Report incident"
+--> (*)
+Endif
+@enduml
+
+
+@startuml
+skinparam monochrome true
+title ChangeCheck HFC Invariant Fingerprint (Activity Diagram)
+
+(*)  -right-> "Load fingerprint and pattern for a Site/SiteChange"
+-right-> "Request Site"
+--> "Apply pattern"
+-left-> "Create fingerprint"
+--> If "Fingerprints are equal"
+--> [Yes] (*)
+else
+-left-> [No] "Check validity of pattern (initiate another request)"
+--> If "Pattern is valid"
+--> [Yes] "Create new SiteChange entry (fingerprint, pattern)"
+--> (*)
+else
+--> [No] "Call Routine 'Create HFC Invariant Fingerprint'"
+--> "Create new SiteChange entry (fingerprint, pattern)"
+Endif
+
 @enduml

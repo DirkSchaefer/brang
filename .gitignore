@@ -30,4 +30,4 @@ build/
 copy.sh
 /dist/
 
-Brang.egg-info/
+brang.egg-info/

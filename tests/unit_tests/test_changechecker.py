@@ -1,18 +1,18 @@
 import unittest
 import logging
-import requests
-import hashlib
 import time
 
 import mailtest
 
 import tests.test_server as test_server
 import brang.database as database
-from brang.change_checker import ChangeChecker
-from brang.exceptions import FingerprintGenerationError
+from brang.change_checker import request_site
+from brang.change_checker import ChangeChecker, NaiveCheckStrategy
+from brang.exceptions import RequestError
 from brang.database import Site, SiteChange
+from brang import config
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class ChangeCheckerTests(unittest.TestCase):
@@ -22,53 +22,17 @@ class ChangeCheckerTests(unittest.TestCase):
         self.url_changing = 'http://localhost:5000/changing'
         self.db = database.SQLiteDatabase(db_filename=':memory:')
         test_server.start_server()
+        self.naive_check_strategy = NaiveCheckStrategy(db=self.db)
         self.checker = ChangeChecker(db=self.db)
+        self.checker.change_check_strategy = self.naive_check_strategy
 
-    def test_change_checker_fingerprint(self):
-        r_t1 = requests.get(self.url_fix)
-        s1 = hashlib.sha224(r_t1.content).hexdigest()
-        site = Site(url=self.url_fix)
-        d = self.checker.get_fingerprint(site=site)
-        self.assertEqual(['fingerprint', 'timestamp'], list(d.keys()))
-        self.assertEqual(s1, d['fingerprint'])
-
-    def test_change_checker_fingerprint_broken_url(self):
-        with self.assertRaises(FingerprintGenerationError) as cm:
+    def test_request_site_broken_url(self):
+        with self.assertRaises(RequestError) as cm:
             url = 'http://localhost:5001/doesnotexists'
             site = Site(url=url)
-            d = self.checker.get_fingerprint(site=site)
+            site_content = request_site(site=site)
         ex = cm.exception
         logging.info(ex)
-
-    def test_change_checker_fingerprint_non_200_status_code(self):
-        test_url = 'http://localhost:5000/unknown'
-        with self.assertRaises(FingerprintGenerationError) as cm:
-            site = Site(url=test_url)
-            d = self.checker.get_fingerprint(site=site)
-        ex = cm.exception
-        logging.info(ex)
-
-    def test_prelim_detect_site_change(self):
-        r_t1 = requests.get(self.url_changing)
-        r_t1.content
-        s1 = hashlib.sha224(r_t1.content).hexdigest()
-        logging.info(f"Fingerprint t1: {s1}")
-        r_t2 = requests.get(self.url_changing)
-        r_t2.content
-        s2 = hashlib.sha224(r_t2.content).hexdigest()
-        logging.info(f"Fingerprint t2: {s2}")
-        self.assertIsNot(s1, s2)
-
-    def test_prelim_detect_no_site_change(self):
-        r_t1 = requests.get(self.url_fix)
-        r_t1.content
-        s1 = hashlib.sha224(r_t1.content).hexdigest()
-        logging.info(f"Fingerprint t1: {s1}")
-        r_t2 = requests.get(self.url_fix)
-        r_t2.content
-        s2 = hashlib.sha224(r_t2.content).hexdigest()
-        logging.info(f"Fingerprint t2: {s2}")
-        self.assertEqual(s1, s2)
 
     def test_check_site_changing_empty(self):
         self.db.insert_site(url=self.url_changing)
@@ -121,8 +85,8 @@ class ChangeCheckerTests(unittest.TestCase):
     def test_send_email(self):
         recipient = "root@localhost"
         self.db.add_setting(key="email_to", value=recipient)
-        self.db.add_setting(key="smtp_port", value="1025")
-        self.db.add_setting(key="smtp_server", value="localhost")
+        config.smtp_port = 1025
+        config.smtp_server = "localhost"
 
         with mailtest.Server(smtp_port=1025) as s:
             self.checker.send_email(msg_body="test")
